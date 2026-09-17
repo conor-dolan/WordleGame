@@ -1,29 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using WordleGame.Model;
 using WordleGame.Services;
-using WordleGame.View;
 
 namespace WordleGame.ViewModel
 {
     public class WordleViewModel : BaseViewModel
     {
-        //Variables
-        private WordleService wordleService;
-        private string selectWord = "";
-        private char[] selectWordArray;
-        private string playerAnswer;
+        private const int WordLength = 5;
+        private const int TotalAttempts = 6;
+
+        private readonly WordleService wordleService;
+        private string selectedWord = string.Empty;
+        private string playerAnswer = string.Empty;
         private string playerName;
-        private ObservableCollection<string> guessResult;
-        private int maxAttempts = 6;
+        private int maxAttempts = TotalAttempts;
         private bool isGameOver;
+        private string statusMessage = string.Empty;
+
+        public ObservableCollection<GuessResultRow> GuessResult { get; } = new();
 
         public bool IsGameOver
         {
@@ -34,16 +28,12 @@ namespace WordleGame.ViewModel
                 {
                     isGameOver = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(CanSubmit));
+                    SubmitAnswerCommand.ChangeCanExecute();
                 }
             }
         }
 
-        private void SetGameOver(bool gameOver)
-        {
-            IsGameOver = gameOver;
-        }
-
-        //track player attempts
         public int MaxAttempts
         {
             get => maxAttempts;
@@ -53,78 +43,71 @@ namespace WordleGame.ViewModel
                 {
                     maxAttempts = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(CanSubmit));
+                    SubmitAnswerCommand.ChangeCanExecute();
                 }
             }
         }
 
-        // SelectWord holds a word from the list in GetWordsAsync method
         public string SelectWord
         {
-            get => selectWord;
-            set
+            get => selectedWord;
+            private set
             {
-                if (selectWord != value)
+                if (selectedWord != value)
                 {
-                    selectWord = value;
+                    selectedWord = value;
                     OnPropertyChanged();
-
-                    //selectWordArray stores the word in an array for comparison
-                    selectWordArray = selectWord?.ToCharArray();
                 }
             }
         }
 
-        //Users guess
         public string PlayerAnswer
         {
             get => playerAnswer;
             set
             {
-                if (playerAnswer != value)
+                var sanitized = SanitizeGuess(value);
+                if (playerAnswer != sanitized)
                 {
-                    playerAnswer = value;
+                    playerAnswer = sanitized;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(CanSubmit));
+                    SubmitAnswerCommand.ChangeCanExecute();
+                }
+            }
+        }
+
+        public string StatusMessage
+        {
+            get => statusMessage;
+            set
+            {
+                if (statusMessage != value)
+                {
+                    statusMessage = value;
                     OnPropertyChanged();
                 }
             }
         }
 
-        // ObservableCollection to store feedback results
-        public ObservableCollection<string> GuessResult
-        {
-            get => guessResult;
-            set
-            {
-                guessResult = value;
-                OnPropertyChanged();
-            }
-        }
+        public bool CanSubmit => !IsBusy && !IsGameOver && MaxAttempts > 0 && PlayerAnswer.Length == WordLength;
 
-        public Command GetWordsCommand { get; }
         public Command SubmitAnswerCommand { get; }
         public Command NewGameCommand { get; }
 
-        //WordleViewModel Default Constructor
-        public WordleViewModel()
-        {
-
-        }
-
-        //overloaded constructor
         public WordleViewModel(WordleService wordleService)
         {
             Title = "Wordle";
             this.wordleService = wordleService;
-            GetWordsCommand = new Command(async () => await GetWordsAsync());
-            SubmitAnswerCommand = new Command(async () => await SubmitAnswerAsync());
-            NewGameCommand = new Command(async () => await NewGameAsync());
-            playerName = Preferences.Get("playerName", "Player");
+            SubmitAnswerCommand = new Command(async () => await SubmitAnswerAsync(), () => CanSubmit);
+            NewGameCommand = new Command(async () => await NewGameAsync(), () => !IsBusy);
+            playerName = Preferences.Get("PlayerName", "Player");
 
-
-            Debug.WriteLine("WordleViewModel initialized");
-            _ = GetWordsAsync();
+            _ = NewGameAsync();
         }
 
-        async Task NewGameAsync()
+        private async Task NewGameAsync()
         {
             if (IsBusy)
                 return;
@@ -132,157 +115,150 @@ namespace WordleGame.ViewModel
             try
             {
                 IsBusy = true;
-                MaxAttempts = 6;
+                StatusMessage = string.Empty;
+                MaxAttempts = TotalAttempts;
                 PlayerAnswer = string.Empty;
-                GuessResult = new ObservableCollection<string>();
-                SetGameOver(false);
+                GuessResult.Clear();
+                IsGameOver = false;
 
-                await GetWordsAsync();
-                SelectWord = ((Wordle)wordleService.GetNextWord()).Word;
-
-
+                await wordleService.GetWords();
+                SelectWord = wordleService.GetNextWord().Word;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex);
-                await Shell.Current.DisplayAlert("Error", "Unable to start a new game", "OK");
+                StatusMessage = "Unable to start a new game.";
+                await Shell.Current.DisplayAlert("Error", "Unable to start a new game.", "OK");
             }
             finally
             {
                 IsBusy = false;
+                SubmitAnswerCommand.ChangeCanExecute();
+                NewGameCommand.ChangeCanExecute();
             }
         }
 
-        //static random instance
-        private static readonly Random random = new Random();
-
-        // Method to get the list of words and select a random word
-        async Task GetWordsAsync()
+        private async Task SubmitAnswerAsync()
         {
-            if (IsBusy)
+            if (!CanSubmit)
                 return;
 
             try
             {
                 IsBusy = true;
-                var words = await wordleService.GetWords();
+                StatusMessage = string.Empty;
 
-                if (words.Any())
+                var guess = PlayerAnswer.ToUpperInvariant();
+                if (guess.Length != WordLength || !guess.All(char.IsLetter))
                 {
-                    SelectWord = words[random.Next(words.Count)].Word;
-                    Debug.WriteLine($"Selected Word: {SelectWord}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex);
-                await Shell.Current.DisplayAlert("Error", "Unable to get words", "OK");
-            }
-            finally
-            {
-                IsBusy = false;
-            }
-        }
-
-        //method to submit the player's answer and provide feedback
-        async Task SubmitAnswerAsync()
-        {
-            if (IsBusy || MaxAttempts <= 0)
-                return;
-
-            try
-            {
-                IsBusy = true;
-                var playerAnswerArray = PlayerAnswer.ToLower().ToCharArray(); //puts user's answer into an array
-                var result = new ObservableCollection<string>();
-
-                if (selectWordArray == null)
-                {
-                    result.Add("Error: The selected word has not been initialized.");
-                    GuessResult = result;
+                    StatusMessage = "Enter exactly 5 letters.";
                     return;
                 }
 
-                if (playerAnswerArray.Length != 5)
+                if (string.IsNullOrWhiteSpace(SelectWord))
                 {
-                    result.Add("Please enter exactly 5 characters.");
+                    StatusMessage = "No game word is loaded. Start a new game.";
+                    return;
                 }
-                else
+
+                var feedback = EvaluateGuess(guess, SelectWord);
+                GuessResult.Insert(0, new GuessResultRow
                 {
-                    var gameFeedback = new char[5];
+                    Guess = guess,
+                    Pattern = feedback.Pattern,
+                    Message = feedback.Message
+                });
 
-                    // Loop compares user's input to the selected word
-                    for (int i = 0; i < 5; i++)
-                    {
-                        if (playerAnswerArray[i] == selectWordArray[i])
-                        {
-                            gameFeedback[i] = 'G';
-                            result.Add($"{playerAnswerArray[i]} is in the correct position");
-                        }
-                        else if (selectWordArray.Contains(playerAnswerArray[i]))
-                        {
-                            gameFeedback[i] = 'Y';
-                            result.Add($"{playerAnswerArray[i]} is correct but wrong position.");
-                        }
-                        else
-                        {
-                            gameFeedback[i] = 'X';
-                            result.Add($"{playerAnswerArray[i]} is incorrect");
-                        }
-                    }
+                MaxAttempts--;
 
-                    MaxAttempts--;
-                    //displaying results
-                    if (new string(playerAnswerArray) == new string(selectWordArray))
-                    {
-                        result.Add("Congratulations! You guessed the word!");
-                        GuessResult = result;
+                if (feedback.IsWin)
+                {
+                    IsGameOver = true;
+                    StatusMessage = "You guessed the word!";
+                    EndGame();
+                    await Shell.Current.DisplayAlert("You Win!", "Congratulations! You've guessed the word correctly.", "OK");
+                    return;
+                }
 
-                        // Show a popup for winning
-                        await Shell.Current.DisplayAlert("You Win!", "Congratulations! You've guessed the word correctly.", "OK");
-                        EndGame();
-                        SetGameOver(true);
-                        MaxAttempts = 0; //gameover
-                    }
-                    else if (MaxAttempts == 0)
-                    {
-                        result.Add($"Game over! The word was: {new string(selectWordArray)}");
-                        GuessResult = result;
-
-                        // Show a popup for losing
-                        await Shell.Current.DisplayAlert("Game Over", $"You've run out of attempts. The word was: {new string(selectWordArray)}.", "OK");
-                        SetGameOver(true);
-                        EndGame();
-                    }
-                    else
-                    {
-                        // Result stored in GuessResult observable collection
-                        GuessResult = result;
-                    }
-                    // Clears the input
-                    PlayerAnswer = string.Empty;
+                if (MaxAttempts == 0)
+                {
+                    IsGameOver = true;
+                    StatusMessage = $"Game over! The word was {SelectWord}.";
+                    EndGame();
+                    await Shell.Current.DisplayAlert("Game Over", $"You've run out of attempts. The word was: {SelectWord}.", "OK");
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex);
-                await Shell.Current.DisplayAlert("Error", "Unable to submit answer", "OK");
+                StatusMessage = "Unable to submit answer.";
+                await Shell.Current.DisplayAlert("Error", "Unable to submit answer.", "OK");
             }
             finally
             {
+                PlayerAnswer = string.Empty;
                 IsBusy = false;
+                SubmitAnswerCommand.ChangeCanExecute();
+                NewGameCommand.ChangeCanExecute();
             }
         }
 
-        //method to send data to scoreboard
-        private void EndGame()
+        private (string Pattern, string Message, bool IsWin) EvaluateGuess(string guess, string word)
         {
-            var attemptsUsed = 6 - MaxAttempts;
+            var statuses = new char[WordLength];
+            var remaining = new Dictionary<char, int>();
 
-            var scoreboardViewModel = new ScoreboardViewModel();
-            scoreboardViewModel.AddScore(playerName, SelectWord, attemptsUsed);
+            for (int i = 0; i < WordLength; i++)
+            {
+                if (guess[i] == word[i])
+                {
+                    statuses[i] = 'G';
+                }
+                else
+                {
+                    statuses[i] = 'X';
+                    remaining[word[i]] = remaining.GetValueOrDefault(word[i]) + 1;
+                }
+            }
 
+            for (int i = 0; i < WordLength; i++)
+            {
+                if (statuses[i] == 'G')
+                    continue;
+
+                var letter = guess[i];
+                if (remaining.TryGetValue(letter, out var count) && count > 0)
+                {
+                    statuses[i] = 'Y';
+                    remaining[letter] = count - 1;
+                }
+            }
+
+            var isWin = statuses.All(c => c == 'G');
+            var message = isWin ? "Correct!" : "G=correct spot, Y=wrong spot, X=not in word";
+            return (new string(statuses), message, isWin);
         }
 
+        private string SanitizeGuess(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            return new string(value.Where(char.IsLetter).Take(WordLength).ToArray()).ToUpperInvariant();
+        }
+
+        private void EndGame()
+        {
+            var attemptsUsed = TotalAttempts - MaxAttempts;
+            var scoreboardViewModel = new ScoreboardViewModel();
+            scoreboardViewModel.AddScore(playerName, SelectWord, attemptsUsed);
+        }
+    }
+
+    public class GuessResultRow
+    {
+        public string Guess { get; set; } = string.Empty;
+        public string Pattern { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
     }
 }

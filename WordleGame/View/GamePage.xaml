@@ -2,7 +2,8 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewModel="clr-namespace:WordleGame.ViewModel"
-             x:Class="WordleGame.View.GamePage">
+             x:Class="WordleGame.View.GamePage"
+             Title="Game">
 
     <VerticalStackLayout Padding="20" Spacing="15">
         <!-- Game Title -->
@@ -17,11 +18,15 @@
                VerticalOptions="Start" />
 
         <!-- Feedback -->
-        <Label Text="Feedback:" FontAttributes="Bold" VerticalOptions="Start" />
+        <Label Text="Guesses" FontAttributes="Bold" VerticalOptions="Start" />
         <CollectionView ItemsSource="{Binding GuessResult}" VerticalOptions="FillAndExpand">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Label Text="{Binding}" />
+                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10" Padding="4,2">
+                        <Label Grid.Column="0" Text="{Binding Guess}" FontAttributes="Bold" />
+                        <Label Grid.Column="1" Text="{Binding Pattern}" />
+                        <Label Grid.Column="2" Text="{Binding Message}" />
+                    </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
@@ -35,15 +40,21 @@
                VerticalOptions="Center" />
 
         <Label Text="{Binding SelectWord}" IsVisible="False" FontSize="24" HorizontalOptions="Center" />
+        <Label Text="{Binding StatusMessage}" TextColor="OrangeRed" />
 
         <!-- Submit Button -->
         <Button Text="Submit"
-                Command="{Binding SubmitAnswerCommand}"
-                HorizontalOptions="FillAndExpand"
-                VerticalOptions="Center" />
+               Command="{Binding SubmitAnswerCommand}"
+               HorizontalOptions="FillAndExpand"
+               VerticalOptions="Center" />
 
         <!-- Play Again Button -->
         <Button Text="New Game" Command="{Binding NewGameCommand}" />
+        
+        <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+            <Button Text="Main Menu" Clicked="OnMainMenuClicked" />
+            <Button Text="Scoreboard" Clicked="OnScoreboardClicked" />
+        </HorizontalStackLayout>
 
     </VerticalStackLayout>
 </ContentPage>

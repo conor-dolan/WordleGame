@@ -13,6 +13,7 @@ namespace WordleGame
             Routing.RegisterRoute("main", typeof(View.MainPage));
             Routing.RegisterRoute("game", typeof(View.GamePage));
             Routing.RegisterRoute("scoreboard", typeof(View.ScoreboardPage));
+            Routing.RegisterRoute("settings", typeof(View.SettingsPage));
         }
     }
 }

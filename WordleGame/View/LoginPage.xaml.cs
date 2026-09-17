@@ -1,6 +1,4 @@
 using Microsoft.Maui.Controls;
-using WordleGame.ViewModel;
-using WordleGame.Model;
 
 namespace WordleGame.View
 {

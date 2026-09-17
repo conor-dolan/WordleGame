@@ -8,7 +8,7 @@ namespace WordleGame.ViewModel
     {
         private const string ScoreFileName = "scores.json";
 
-        public ObservableCollection<ScoreBoard> Scores { get; set; } = new ObservableCollection<ScoreBoard>();
+        public ObservableCollection<ScoreBoardEntry> Scores { get; set; } = new ObservableCollection<ScoreBoardEntry>();
 
         public ScoreboardViewModel()
         {
@@ -40,7 +40,7 @@ namespace WordleGame.ViewModel
                 if (File.Exists(filePath))
                 {
                     var json = File.ReadAllText(filePath);
-                    var loadedScores = JsonSerializer.Deserialize<List<ScoreBoard>>(json);
+                    var loadedScores = JsonSerializer.Deserialize<List<ScoreBoardEntry>>(json);
                     if (loadedScores != null)
                     {
                         Scores.Clear();
@@ -65,7 +65,7 @@ namespace WordleGame.ViewModel
         // Add a new score and save it
         public void AddScore(string playerName, string word, int attempts)
         {
-            var newScore = new ScoreBoard
+            var newScore = new ScoreBoardEntry
             {
                 PlayerName = playerName,
                 Word = word,
@@ -92,12 +92,5 @@ namespace WordleGame.ViewModel
             }
         }
 
-        // ScoreBoard class
-        public class ScoreBoard
-        {
-            public string PlayerName { get; set; }
-            public string Word { get; set; }
-            public int Attempts { get; set; }
-        }
     }
 }
