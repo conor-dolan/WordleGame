@@ -5,15 +5,18 @@
        x:Class="WordleGame.AppShell">
 
     <!-- Define the route for LoginPage -->
-    <ShellContent Title="LoginPage" ContentTemplate="{DataTemplate view:LoginPage}" Route="login"/>
+    <ShellContent Title="Login" ContentTemplate="{DataTemplate view:LoginPage}" Route="login"/>
 
     <!-- Define the route for MainPage -->
-    <ShellContent Title="MainPage" ContentTemplate="{DataTemplate view:MainPage}" Route="main" />
+    <ShellContent Title="Main Menu" ContentTemplate="{DataTemplate view:MainPage}" Route="main" />
 
     <!-- Define the route for GamePage -->
-    <ShellContent Title="GamePage" ContentTemplate="{DataTemplate view:GamePage}" Route="game" />
+    <ShellContent Title="Game" ContentTemplate="{DataTemplate view:GamePage}" Route="game" />
 
     <!-- Define the route for ScoreboardPage -->
-    <ShellContent Title="ScoreboardPage" ContentTemplate="{DataTemplate view:ScoreboardPage}" Route="scoreboard"/>
+    <ShellContent Title="Scoreboard" ContentTemplate="{DataTemplate view:ScoreboardPage}" Route="scoreboard"/>
+
+    <!-- Define the route for SettingsPage -->
+    <ShellContent Title="Settings" ContentTemplate="{DataTemplate view:SettingsPage}" Route="settings"/>
 
 </Shell>

@@ -33,6 +33,11 @@
                 VerticalOptions="End"
                 Command="{Binding ResetScoresCommand}" />
 
+            <HorizontalStackLayout Spacing="10" HorizontalOptions="Center" Margin="0,12,0,0">
+                <Button Text="Main Menu" Clicked="OnMainMenuClicked" />
+                <Button Text="Game" Clicked="OnGameClicked" />
+            </HorizontalStackLayout>
+
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

@@ -4,8 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WordleGame.Model;
-using System.Net.Http.Json;
-using System.Text.Json;
+using System.Diagnostics;
 
 namespace WordleGame.Services
 {
@@ -14,6 +13,11 @@ namespace WordleGame.Services
         private readonly HttpClient httpClient;
         private List<Wordle> wordsList = new();
         private int currentWordIndex = -1;
+        private readonly string[] fallbackWords =
+        {
+            "APPLE", "BRAVE", "CRANE", "DREAM", "EAGER",
+            "FLAME", "GRAPE", "HOUSE", "INDEX", "JOKER"
+        };
 
         public WordleService()
         {
@@ -22,46 +26,53 @@ namespace WordleGame.Services
 
         public async Task<List<Wordle>> GetWords()
         {
-            // Checks if words are loaded
             if (wordsList.Count > 0)
-                //RandomizeWords(wordsList);
-            return wordsList;
+                return wordsList;
 
             var wordUrl = "https://raw.githubusercontent.com/DonH-ITS/jsonfiles/main/words.txt";
+            const int maxAttempts = 3;
 
-            try
+            for (var attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                var response = await httpClient.GetAsync(wordUrl);
-
-                if (response.IsSuccessStatusCode)
+                try
                 {
+                    var response = await httpClient.GetAsync(wordUrl);
+                    response.EnsureSuccessStatusCode();
                     var text = await response.Content.ReadAsStringAsync();
                     var words = text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
 
-                    // Create Wordle objects for each word
-                    foreach (var word in words)
+                    wordsList = words
+                        .Select(word => word.Trim().ToUpperInvariant())
+                        .Where(word => word.Length == 5 && word.All(char.IsLetter))
+                        .Distinct()
+                        .Select(word => new Wordle { Word = word })
+                        .ToList();
+
+                    if (wordsList.Count > 0)
                     {
-                        wordsList.Add(new Wordle { Word = word.Trim() });
+                        RandomizeWords(wordsList);
+                        return wordsList;
                     }
-
-                    RandomizeWords(wordsList);
                 }
-                else
+                catch (Exception ex)
                 {
-                    throw new Exception("Unable to retrieve words from the API.");
+                    Debug.WriteLine($"Word fetch attempt {attempt} failed: {ex.Message}");
+                    if (attempt < maxAttempts)
+                    {
+                        await Task.Delay(300 * attempt);
+                    }
                 }
             }
-            catch (Exception ex)
-            {
-                throw new Exception("Error fetching words", ex);
-            }
 
+            wordsList = fallbackWords.Select(word => new Wordle { Word = word }).ToList();
+            RandomizeWords(wordsList);
             return wordsList;
         }
 
-        internal object GetNextWord()
+        internal Wordle GetNextWord()
         {
-            if (wordsList.Count == 0) ;
+            if (wordsList.Count == 0)
+                throw new InvalidOperationException("No words are loaded.");
 
             currentWordIndex = (currentWordIndex + 1) % wordsList.Count;
             return wordsList[currentWordIndex];
@@ -80,4 +91,3 @@ namespace WordleGame.Services
         }
     }
 }
-

@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using WordleGame.Services;
+using WordleGame.ViewModel;
 
 namespace WordleGame
 {
@@ -14,6 +16,9 @@ namespace WordleGame
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
+
+            builder.Services.AddSingleton<WordleService>();
+            builder.Services.AddTransient<WordleViewModel>();
 
 #if DEBUG
     		builder.Logging.AddDebug();

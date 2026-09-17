@@ -30,13 +30,19 @@ namespace WordleGame.ViewModel
 
         private async void OnLogin()
         {
+            if (string.IsNullOrWhiteSpace(PlayerName))
+            {
+                await Shell.Current.DisplayAlert("Name required", "Please enter your name to continue.", "OK");
+                return;
+            }
+
             SaveUsername();
             await Shell.Current.GoToAsync("//main");
         }
 
         private void SaveUsername()
         {
-            Preferences.Set("PlayerName", PlayerName);
+            Preferences.Set("PlayerName", PlayerName.Trim());
         }
 
         private void LoadUsername()

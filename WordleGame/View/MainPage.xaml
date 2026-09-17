@@ -14,8 +14,8 @@
         <VerticalStackLayout Padding="20" Spacing="15" VerticalOptions="Center" HorizontalOptions="FillAndExpand">
             <!-- Navigation Buttons-->
             <Button Text="Start Game" Command="{Binding NavigateToGameCommand}" />
-            <Button Text="Settings" Clicked="OnSettingsClicked" />
-            <Button Text="Scoreboard" Clicked="OnScoreboardClicked" />
+            <Button Text="Settings" Command="{Binding NavigateToSettingsCommand}" />
+            <Button Text="Scoreboard" Command="{Binding NavigateToScoreboardCommand}" />
         </VerticalStackLayout>
     </Grid>
 </ContentPage>

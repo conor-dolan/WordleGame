@@ -1,6 +1,3 @@
-using WordleGame.ViewModel;
-using WordleGame.Model;
-
 namespace WordleGame.View
 {
     public partial class ScoreboardPage : ContentPage
@@ -8,7 +5,16 @@ namespace WordleGame.View
         public ScoreboardPage()
         {
             InitializeComponent();
-            BindingContext = new ScoreboardViewModel();
+        }
+
+        private async void OnMainMenuClicked(object sender, EventArgs e)
+        {
+            await Shell.Current.GoToAsync("//main");
+        }
+
+        private async void OnGameClicked(object sender, EventArgs e)
+        {
+            await Shell.Current.GoToAsync("game");
         }
     }
 }
